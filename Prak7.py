@@ -74,6 +74,60 @@ def submit_nilai():
         print(row)
     conn.close()
 
+def update_data():
+    selected = table.focus()
+    if not selected:
+        messagebox.showerror("Error, Pilih data dari tabel!")
+        return
+    
+    nama_baru = entry_nama.get().strip()
+
+    try:
+        bio = int(entry_bio.get())
+        fis = int(entry_fis.get())
+        ing = int(entry_ing.get())
+    except:
+        messagebox.showerror("Error", "Nilai harus angka!")
+        return
+
+    hasil = prediksi_fakultas(bio, fis, ing)
+
+
+    nama_lama = table.item(selected, "values")[0]
+
+    conn = sqlite3.connect("nilai_siswa.db")
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE nilai_siswa
+        SET nama_siswa=?, biologi=?, fisika=?, inggris=?, prediksi_fakultas=?
+        WHERE nama_siswa=?
+    """, (nama_baru, bio, fis, ing, hasil, nama_lama))
+    conn.commit()
+    conn.close()
+
+    load_data()
+    messagebox.showinfo("Success", "Data berhasil diperbarui!")
+
+def delete_data():
+    selected = table.focus()
+    if not selected:
+        messagebox.showerror("Error", "Pilih data dari tabel!")
+        return
+
+    nama = table.item(selected, "values")[0]
+
+    if not messagebox.askyesno("Hapus", f"Yakin hapus data '{nama}'?"):
+        return
+
+    conn = sqlite3.connect("nilai_siswa.db")
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM nilai_siswa WHERE nama_siswa=?", (nama,))
+    conn.commit()
+    conn.close()
+
+    load_data()
+    messagebox.showinfo("Success", "Data berhasil dihapus!")
+
 def load_data():
     for i in table.get_children():
         table.delete(i)
@@ -84,6 +138,23 @@ def load_data():
     conn.close()
     for row in rows:
         table.insert("", tk.END, values=row)
+
+def pilih_baris(event):
+    selected = table.focus()
+    if not selected:
+        return
+
+    values = table.item(selected, "values")
+
+    entry_nama.delete(0, tk.END)
+    entry_bio.delete(0, tk.END)
+    entry_fis.delete(0, tk.END)
+    entry_ing.delete(0, tk.END)
+
+    entry_nama.insert(0, values[0])
+    entry_bio.insert(0, values[1])
+    entry_fis.insert(0, values[2])
+    entry_ing.insert(0, values[3])
 
 root = tk.Tk()
 root.title("Aplikasi Prediksi Fakultas")
@@ -123,6 +194,12 @@ btn_submit.grid(row=0, column=0, padx=5)
 
 btn_close = tk.Button(btn_frame, text="Close", command=root.destroy, width=10)
 btn_close.grid(row=0, column=1, padx=5)
+
+btn_update = tk.Button(btn_frame, text="Update", command=update_data, width=10)
+btn_update.grid(row=1, column=0, padx=5, pady=5)
+
+btn_delete = tk.Button(btn_frame, text="Delete", command=delete_data, width=10)
+btn_delete.grid(row=1, column=1, padx=5, pady=5)
 
 right_frame = tk.LabelFrame(main_frame, text="Data Nilai Siswa", padx=10, pady=10)
 right_frame.pack(side="left", padx=20)
